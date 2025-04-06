@@ -21,6 +21,10 @@ const translations = {
         "try-again": "Try Again",
         "assistance-message": "IF YOU NEED ASSISTANCE, PLEASE ASK ONE OF OUR USHERS OR WEDDING PARTY MEMBERS.",
         "fuzzy-match": "Showing closest match for",
+        "table-tip": "Tap on any table to see who's sitting there!",
+        "table-guests": "Guests at this table:",
+        "no-guests": "No guests assigned to this table",
+        "close": "Close",
         
         // Venue element labels
         "stage-label": "Stage",
@@ -28,7 +32,9 @@ const translations = {
         "cakeGifts-label": "Cake & Gifts",
         "bar-label": "BAR",
         "vipTable-label": "VIP Table",
-        "danceFloor-label": "Dance Floor"
+        "danceFloor-label": "Dance Floor",
+        "table-click-hint": "Click to see guests at this table",
+        "vip-click-hint": "Click to see VIP guests"
     },
     
     // Vietnamese translations
@@ -50,6 +56,10 @@ const translations = {
         "try-again": "Thử Lại",
         "assistance-message": "NẾU BẠN CẦN HỖ TRỢ, VUI LÒNG HỎI MỘT TRONG CÁC PHỤC VỤ HOẶC THÀNH VIÊN TRONG ĐOÀN CƯỚI.",
         "fuzzy-match": "Hiển thị kết quả gần nhất cho",
+        "table-tip": "Nhấn vào bất kỳ bàn nào để xem ai đang ngồi ở đó!",
+        "table-guests": "Khách tại bàn này:",
+        "no-guests": "Không có khách được phân công cho bàn này",
+        "close": "Đóng",
         
         // Venue element labels
         "stage-label": "Sân Khấu",
@@ -57,7 +67,9 @@ const translations = {
         "cakeGifts-label": "Bánh & Quà Tặng",
         "bar-label": "Quầy Bar",
         "vipTable-label": "Bàn VIP",
-        "danceFloor-label": "Sàn Nhảy"
+        "danceFloor-label": "Sàn Nhảy",
+        "table-click-hint": "Nhấp để xem khách tại bàn này",
+        "vip-click-hint": "Nhấp để xem khách VIP"
     }
 };
 
