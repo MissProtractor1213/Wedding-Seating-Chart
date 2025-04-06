@@ -70,7 +70,9 @@
                 <div class="map-container">
                     <h4 data-lang-key="table-location">Table Location:</h4>
                     <div id="venueMap" class="venue-map">
-                        </div>
+                        <!-- Tables will be added dynamically -->
+                    </div>
+                    <p class="table-tip" data-lang-key="table-tip">Tap on any table to see who's sitting there!</p>
                 </div>
                 
                 <button id="backButton" data-lang-key="back-button">Back to Search</button>
@@ -90,16 +92,16 @@
     </footer>
 
     <div id="errorMessage" class="error-message hidden">
-    Error loading guest data. Please try refreshing the page.
-    <button id="retryButton" class="retry-button">Retry</button>
-</div>
+        Error loading guest data. Please try refreshing the page.
+        <button id="retryButton" class="retry-button">Retry</button>
+    </div>
 
-<script src="translations.js"></script>
-<script src="csv-processor.js"></script>
-<script src="venue-map.js"></script>
-<script src="script.js"></script>
-<script src="initialization.js"></script>
-<script src="integration.js"></script>   
-  
+    <script src="translations.js"></script>
+    <script src="csv-processor.js"></script>
+    <script src="venue-map.js"></script>
+    <script src="script.js"></script>
+    <script src="initialization.js"></script>
+    <script src="integration.js"></script>
+    <script src="tableClickFunctionality.js"></script>
 </body>
 </html>
