@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Seating Chart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="language-selector">
+        <button class="language-button" id="englishBtn" data-lang="en">ENGLISH</button>
+        <button class="language-button" id="vietnameseBtn" data-lang="vi">TIẾNG VIỆT</button>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 data-lang-key="main-title">WELCOME TO OUR WEDDING</h1>
+            <h2 data-lang-key="subtitle">FIND YOUR TABLE AND SEE WHO YOU'LL BE CELEBRATING WITH!</h2>
+        </header>
+
+        <div class="floral-card">
+            <div class="card-content">
+                <h3 data-lang-key="find-table">FIND YOUR TABLE</h3>
+                <div class="divider">
+                    <span class="divider-line"></span>
+                    <span class="heart-icon">🌸</span>
+                    <span class="divider-line"></span>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" id="nameSearch" data-lang-key="search-placeholder" placeholder="ENTER YOUR FULL NAME">
+                    
+                    <div class="side-selector">
+                        <p data-lang-key="side-prompt">I am a guest of:</p>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="side" value="bride" checked>
+                                <span data-lang-key="bride-side">The Bride</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="side" value="groom">
+                                <span data-lang-key="groom-side">The Groom</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button id="searchButton" data-lang-key="search-button">FIND MY TABLE</button>
+                </div>
+            </div>
+        </div>
+                    
+        <div id="resultContainer" class="result-container hidden">
+            <div class="result-card">
+                <h3 id="guestName">Guest Name</h3>
+                <p><span data-lang-key="seated-at">You are seated at:</span> <span id="tableName">Table Name</span></p>
+                <p id="seatNumber"></p>
+                
+                <div class="divider simple-divider"></div>
+                
+                <div class="tablemates">
+                    <h4 data-lang-key="seated-with">You are seated with:</h4>
+                    <ul id="tablematesList"></ul>
+                </div>
+                
+                <div class="divider simple-divider"></div>
+                
+                <div class="map-container">
+                    <h4 data-lang-key="table-location">Table Location:</h4>
+                    <div id="venueMap" class="venue-map">
+                        </div>
+                </div>
+                
+                <button id="backButton" data-lang-key="back-button">Back to Search</button>
+            </div>
+        </div>
+        
+        <div id="noResultContainer" class="no-result hidden">
+            <div class="result-card">
+                <p data-lang-key="no-result">Sorry, we couldn't find your name. Please try again or check with the wedding hosts.</p>
+                <button id="tryAgainButton" data-lang-key="try-again">Try Again</button>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p data-lang-key="assistance-message">IF YOU NEED ASSISTANCE, PLEASE ASK ONE OF OUR USHERS OR WEDDING PARTY MEMBERS.</p>
+    </footer>
+
+    <div id="errorMessage" class="error-message hidden">
+    Error loading guest data. Please try refreshing the page.
+    <button id="retryButton" class="retry-button">Retry</button>
+</div>
+
+<script src="translations.js"></script>
+<script src="csv-processor.js"></script>
+<script src="venue-map.js"></script>
+<script src="script.js"></script>
+<script src="initialization.js"></script>
+<script src="integration.js"></script>   
+  
+</body>
+</html>
