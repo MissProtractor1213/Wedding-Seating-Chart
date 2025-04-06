@@ -609,7 +609,105 @@ footer {
     color: #888;
     font-style: italic;
 }
+/* Table Modal Styles */
+.table-modal {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 400px;
+    width: 90%;
+    background-color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    padding: 25px;
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+}
 
+#tableModalBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* Table styles - improved for clickability */
+.table {
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+.table:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(200, 150, 224, 0.6);
+}
+
+/* Table hint text */
+.table-tip {
+    text-align: center;
+    font-style: italic;
+    color: #888;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* Animation for modal */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -45%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.table-modal {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Guest list in modal */
+.table-modal ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-modal li {
+    background-color: #f5f1ed;
+    padding: 8px 15px;
+    border-radius: 20px;
+    min-width: 150px;
+    text-align: center;
+}
+
+/* Improved hover effect for better touch feedback */
+.table:active {
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-modal {
+        max-width: 350px;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-modal {
+        max-width: 300px;
+        padding: 15px;
+    }
+    
+    .table-modal h3 {
+        font-size: 1.5rem;
+    }
+}
 /* Improved responsive design for venue map */
 @media (max-width: 768px) {
     .venue-map {
