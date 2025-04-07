@@ -1,4 +1,4 @@
-// Add this to a new file: tableClickFunctionality.js
+// Improved table click functionality to fix modal closing issues
 
 // Function to show table details when a table is clicked
 function showTableDetails(tableId) {
@@ -38,13 +38,45 @@ function showTableDetails(tableId) {
     }
 }
 
-// Function to create and show the table details modal
-function createAndShowTableModal(tableId, tableGuests) {
-    // Check if a modal already exists and remove it
-    let existingModal = document.getElementById('tableDetailsModal');
-    if (existingModal) {
-        existingModal.remove();
+// Improved function to properly clean up and close the modal
+function closeTableModal() {
+    // Remove the modal
+    const modal = document.getElementById('tableDetailsModal');
+    if (modal) {
+        modal.remove();
     }
+    
+    // Remove the backdrop and ensure it's completely gone from the DOM
+    const backdrop = document.getElementById('tableModalBackdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+    
+    // Remove any lingering event listeners that might be blocking clicks
+    document.removeEventListener('click', window._tempBackdropClickHandler);
+    
+    // Remove highlighting from all tables
+    document.querySelectorAll('.table, .fixed-element').forEach(element => {
+        element.classList.remove('highlighted');
+    });
+    
+    // Make sure there are no invisible elements blocking clicks
+    const invisibleElements = document.querySelectorAll('div[style*="position: fixed"][style*="z-index"]');
+    invisibleElements.forEach(element => {
+        // Only remove if it's related to our modal functionality
+        if (element.id === 'tableDetailsModal' || element.id === 'tableModalBackdrop' || 
+            element.classList.contains('modal-related')) {
+            element.remove();
+        }
+    });
+    
+    console.log('Modal and backdrop completely removed from DOM');
+}
+
+// Function to create and show the table details modal with improved event handling
+function createAndShowTableModal(tableId, tableGuests) {
+    // First, ensure any existing modal is properly closed
+    closeTableModal();
     
     // Get current language for translations
     const lang = window.currentLanguage || 'en';
@@ -156,17 +188,14 @@ function createAndShowTableModal(tableId, tableGuests) {
     closeButton.style.fontFamily = "'Lato', sans-serif";
     closeButton.style.letterSpacing = '1px';
     
-    closeButton.addEventListener('click', function() {
-        // Close the modal
-        modal.remove();
-        
-        // Remove highlighting from the table
-        document.querySelectorAll('.table, .fixed-element').forEach(element => {
-            element.classList.remove('highlighted');
-        });
+    // Improved close button click handler
+    closeButton.addEventListener('click', function(event) {
+        // Prevent event from propagating
+        event.stopPropagation();
+        closeTableModal();
     });
     
-    // Create backdrop
+    // Create backdrop with improved event handling
     const backdrop = document.createElement('div');
     backdrop.id = 'tableModalBackdrop';
     backdrop.style.position = 'fixed';
@@ -177,16 +206,30 @@ function createAndShowTableModal(tableId, tableGuests) {
     backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
     backdrop.style.zIndex = '999';
     
-    backdrop.addEventListener('click', function() {
-        // Close when clicking outside
-        modal.remove();
-        backdrop.remove();
-        
-        // Remove highlighting from the table
-        document.querySelectorAll('.table, .fixed-element').forEach(element => {
-            element.classList.remove('highlighted');
-        });
+    // Store the click handler so we can remove it later
+    window._tempBackdropClickHandler = function(event) {
+        // Only close if clicking directly on the backdrop, not on the modal
+        if (event.target === backdrop) {
+            closeTableModal();
+        }
+    };
+    
+    // Use capturing phase to handle clicks before they reach other elements
+    backdrop.addEventListener('click', window._tempBackdropClickHandler);
+    
+    // Prevent clicks on the modal from closing it
+    modal.addEventListener('click', function(event) {
+        event.stopPropagation();
     });
+    
+    // Also add escape key to close modal
+    const escKeyHandler = function(event) {
+        if (event.key === 'Escape') {
+            closeTableModal();
+            document.removeEventListener('keydown', escKeyHandler);
+        }
+    };
+    document.addEventListener('keydown', escKeyHandler);
     
     // Assemble modal
     modalContent.appendChild(title);
@@ -213,90 +256,132 @@ function createAndShowTableModal(tableId, tableGuests) {
     }, 10);
 }
 
-// Enhance venue map initialization to add click handlers for tables
-const originalInitVenueMap = window.initializeVenueMap;
-
-window.initializeVenueMap = function() {
-    // Call the original function
-    const result = originalInitVenueMap.apply(this, arguments);
-    
-    // After the map is initialized, add click handlers to all tables
-    const tables = document.querySelectorAll('.table');
-    
-    tables.forEach(table => {
-        // Extract the table ID from the element ID (format: "table-X")
-        const tableId = parseInt(table.id.split('-')[1]);
+// Enhanced venue map initialization to add click handlers for tables
+function enhanceVenueMap() {
+    // Check if the original initializeVenueMap exists
+    if (!window.originalInitVenueMap && window.initializeVenueMap) {
+        // Store the original function
+        window.originalInitVenueMap = window.initializeVenueMap;
         
-        // Remove any existing click handlers
-        table.removeEventListener('click', table._tableClickHandler);
-        
-        // Create a new click handler
-        table._tableClickHandler = function() {
-            showTableDetails(tableId);
-        };
-        
-        // Add the click handler
-        table.addEventListener('click', table._tableClickHandler);
-        
-        // Add a title attribute for better UX
-        table.title = window.currentLanguage === 'en' ? 
-            'Click to see guests at this table' : 
-            'Nhấp để xem khách tại bàn này';
+        // Replace with our enhanced version
+        window.initializeVenueMap = function() {
+            // Call the original function
+            const result = window.originalInitVenueMap.apply(this, arguments);
             
-        // Add a cursor style to indicate it's clickable
-        table.style.cursor = 'pointer';
-    });
-    
-    // Also add click handlers to VIP table (it's a fixed element)
-    const vipElements = document.querySelectorAll('[data-is-vip="true"], [id*="vipTable"]');
-    vipElements.forEach(element => {
-        // Remove any existing click handlers
-        element.removeEventListener('click', element._vipClickHandler);
-        
-        // Create new click handler for VIP table
-        element._vipClickHandler = function() {
-            showTableDetails(46); // VIP table is ID 46
-        };
-        
-        // Add the click handler
-        element.addEventListener('click', element._vipClickHandler);
-        
-        // Add a title attribute for better UX
-        element.title = window.currentLanguage === 'en' ? 
-            'Click to see VIP guests' : 
-            'Nhấp để xem khách VIP';
+            // After the map is initialized, add click handlers to all tables
+            const tables = document.querySelectorAll('.table');
             
-        // Add a cursor style to indicate it's clickable
-        element.style.cursor = 'pointer';
-    });
-    
-    console.log('Added table click handlers to venue map');
-    return result;
-};
-
-// Make sure global functions are available
-window.showTableDetails = showTableDetails;
-window.createAndShowTableModal = createAndShowTableModal;
-
-// When the document is loaded, initialize any tables already in the DOM
-document.addEventListener('DOMContentLoaded', function() {
-    // If the venue map is already initialized, add our click handlers
-    setTimeout(function() {
-        const tables = document.querySelectorAll('.table');
-        if (tables.length > 0) {
-            console.log('Found existing tables, adding click handlers');
             tables.forEach(table => {
                 // Extract the table ID from the element ID (format: "table-X")
                 const tableId = parseInt(table.id.split('-')[1]);
                 
-                // Add click handler
-                table.addEventListener('click', function() {
+                // Remove any existing click handlers
+                const oldHandler = table._tableClickHandler;
+                if (oldHandler) {
+                    table.removeEventListener('click', oldHandler);
+                }
+                
+                // Create a new click handler with event stopping
+                table._tableClickHandler = function(event) {
+                    // Stop the event from propagating up
+                    event.stopPropagation();
                     showTableDetails(tableId);
-                });
+                };
+                
+                // Add the click handler
+                table.addEventListener('click', table._tableClickHandler);
+                
+                // Add a title attribute for better UX
+                table.title = window.currentLanguage === 'en' ? 
+                    'Click to see guests at this table' : 
+                    'Nhấp để xem khách tại bàn này';
+                    
+                // Add a cursor style to indicate it's clickable
+                table.style.cursor = 'pointer';
+            });
+            
+            // Also add click handlers to VIP table (it's a fixed element)
+            const vipElements = document.querySelectorAll('[data-is-vip="true"], [id*="vipTable"]');
+            vipElements.forEach(element => {
+                // Remove any existing click handlers
+                const oldHandler = element._vipClickHandler;
+                if (oldHandler) {
+                    element.removeEventListener('click', oldHandler);
+                }
+                
+                // Create new click handler for VIP table with event stopping
+                element._vipClickHandler = function(event) {
+                    // Stop the event from propagating
+                    event.stopPropagation();
+                    showTableDetails(46); // VIP table is ID 46
+                };
+                
+                // Add the click handler
+                element.addEventListener('click', element._vipClickHandler);
+                
+                // Add a title attribute for better UX
+                element.title = window.currentLanguage === 'en' ? 
+                    'Click to see VIP guests' : 
+                    'Nhấp để xem khách VIP';
+                    
+                // Add a cursor style to indicate it's clickable
+                element.style.cursor = 'pointer';
+            });
+            
+            console.log('Added improved table click handlers to venue map');
+            return result;
+        };
+    }
+}
+
+// Make sure our functions are available globally
+window.showTableDetails = showTableDetails;
+window.createAndShowTableModal = createAndShowTableModal;
+window.closeTableModal = closeTableModal;
+window.enhanceVenueMap = enhanceVenueMap;
+
+// When the document is loaded, initialize our enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Enhancing table click functionality');
+    
+    // Enhance the venue map initialization function
+    enhanceVenueMap();
+    
+    // If the venue map is already initialized, add our improved click handlers
+    setTimeout(function() {
+        const tables = document.querySelectorAll('.table');
+        if (tables.length > 0) {
+            console.log('Found existing tables, adding improved click handlers');
+            tables.forEach(table => {
+                // Extract the table ID from the element ID (format: "table-X")
+                const tableId = parseInt(table.id.split('-')[1]);
+                
+                // Remove any existing click handlers
+                const oldHandler = table._tableClickHandler;
+                if (oldHandler) {
+                    table.removeEventListener('click', oldHandler);
+                }
+                
+                // Add improved click handler with event stopping
+                table._tableClickHandler = function(event) {
+                    // Stop the event from propagating
+                    event.stopPropagation();
+                    showTableDetails(tableId);
+                };
+                
+                // Add the click handler
+                table.addEventListener('click', table._tableClickHandler);
                 
                 // Add cursor style
                 table.style.cursor = 'pointer';
             });
         }
-    }, 1000); // Short delay to ensure the DOM is fully processed
+    }, 500); // Short delay to ensure the DOM is fully processed
+});
+
+// Check for any existing modal or backdrop on page load and clean them up
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        closeTableModal(); // Clean up any lingering modals
+    }, 300);
 });
