@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make sure translations are globally available
     window.translations = translations;
     
-    // Set default language as a global variable
+    // CHANGED: Set Vietnamese as default language
     if (!window.currentLanguage) {
-        window.currentLanguage = localStorage.getItem('weddinglanguage') || 'en';
+        window.currentLanguage = localStorage.getItem('weddinglanguage') || 'vi'; // Changed from 'en' to 'vi'
     }
     
     // Function to load sample guest data as fallback
@@ -147,9 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
         testContainer.style.borderRadius = '5px';
         testContainer.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.2)';
         
-        // Create a title
+        // CHANGED: Create title in Vietnamese when Vietnamese is default
         const title = document.createElement('p');
-        title.textContent = 'Test Table Highlighting:';
+        title.textContent = window.currentLanguage === 'vi' ? 'Kiểm tra đánh dấu bàn:' : 'Test Table Highlighting:';
         title.style.marginBottom = '5px';
         title.style.fontSize = '12px';
         testContainer.appendChild(title);
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tables = [1, 20, 35];
         tables.forEach(tableNum => {
             const button = document.createElement('button');
-            button.textContent = `Table ${tableNum}`;
+            button.textContent = window.currentLanguage === 'vi' ? `Bàn ${tableNum}` : `Table ${tableNum}`;
             button.style.fontSize = '12px';
             button.style.padding = '5px';
             button.style.margin = '2px';
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add a close button
         const closeButton = document.createElement('button');
-        closeButton.textContent = 'Close';
+        closeButton.textContent = window.currentLanguage === 'vi' ? 'Đóng' : 'Close';
         closeButton.style.fontSize = '10px';
         closeButton.style.padding = '3px';
         closeButton.style.marginTop = '5px';
