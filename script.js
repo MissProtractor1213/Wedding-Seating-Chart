@@ -14,12 +14,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const backButton = document.getElementById('backButton');
     const tryAgainButton = document.getElementById('tryAgainButton');
 
-    // Set default language as a global variable
-    window.currentLanguage = 'en';
+    // CHANGED: Set Vietnamese as default language instead of English
+    window.currentLanguage = 'vi'; // Changed from 'en' to 'vi'
 
     // Check if there's a saved language preference in localStorage
     if (localStorage.getItem('weddinglanguage')) {
         window.currentLanguage = localStorage.getItem('weddinglanguage');
+    } else {
+        // CHANGED: If no saved preference, default to Vietnamese
+        window.currentLanguage = 'vi';
+        localStorage.setItem('weddinglanguage', 'vi');
     }
 
     // Add this logging code to check if data is loading
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Set initial active language button
+    // CHANGED: Set initial active language button to Vietnamese
     updateLanguageButtonState();
 
     // Function to apply translations to all elements
@@ -182,6 +186,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // ADDED: Apply Vietnamese translations immediately on load
+    setTimeout(function() {
+        applyTranslations();
+    }, 100);
 
     // Make the applyTranslations function globally available
     window.applyTranslations = applyTranslations;
@@ -312,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const bestGuestScore = Math.max(nameScore, vnNameScore);
 
             // Only log for the best matches to avoid console spam
-            if (bestGuestScore > 0.6) {
+            if (bestGuestScore > 0.4) {
                 console.log(`Guest "${guest.name}" similarity score: ${bestGuestScore.toFixed(2)}`);
             }
 
@@ -325,64 +334,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log(`Best match: ${bestMatch ? bestMatch.name : 'none'} with score ${bestScore.toFixed(2)}`);
 
-        // VERY STRICT THRESHOLD: Only return a match if the similarity is above 0.85 (85% similar)
-        // This only allows for 1-2 character typos, not completely different names
-        return bestScore > 0.85 ? bestMatch : null;
+        // Only return a match if the similarity is above a threshold (0.4 or 40% similar)
+        return bestScore > 0.4 ? bestMatch : null;
     }
 
     // Function to calculate similarity between two strings
     function calculateSimilarity(str1, str2) {
-        // Strict similarity algorithm using Levenshtein distance
-        
-        // First check for very similar strings (typos)
-        const distance = levenshteinDistance(str1, str2);
-        const maxLength = Math.max(str1.length, str2.length);
-        
-        // Calculate similarity based on edit distance
-        const similarity = 1 - (distance / maxLength);
-        
-        // REMOVED containment bonus to be stricter - only pure similarity counts
-        // This prevents partial matches from inflating the score
-        
-        return similarity;
-    }
-    
-    // Helper function to calculate Levenshtein distance (edit distance)
-    function levenshteinDistance(str1, str2) {
-        const matrix = [];
-        
-        // If strings are equal, distance is 0
-        if (str1 === str2) return 0;
-        
-        // If one string is empty, distance is length of the other
-        if (str1.length === 0) return str2.length;
-        if (str2.length === 0) return str1.length;
-        
-        // Initialize the matrix
-        for (let i = 0; i <= str2.length; i++) {
-            matrix[i] = [i];
-        }
-        
-        for (let j = 0; j <= str1.length; j++) {
-            matrix[0][j] = j;
-        }
-        
-        // Calculate distances
-        for (let i = 1; i <= str2.length; i++) {
-            for (let j = 1; j <= str1.length; j++) {
-                if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1,  // substitution
-                        matrix[i][j - 1] + 1,       // insertion
-                        matrix[i - 1][j] + 1        // deletion
-                    );
-                }
+        // Simple similarity algorithm (can be improved)
+        const longer = str1.length > str2.length ? str1 : str2;
+        const shorter = str1.length > str2.length ? str2 : str1;
+
+        let hits = 0;
+        for (let i = 0; i < shorter.length; i++) {
+            if (longer.indexOf(shorter[i]) !== -1) {
+                hits++;
             }
         }
-        
-        return matrix[str2.length][str1.length];
+
+        return hits / longer.length;
     }
 
     // Function to highlight a table, including VIP table (ID 46)
@@ -552,13 +521,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!window.guestList || !Array.isArray(window.guestList) || window.guestList.length === 0) {
             console.error("Guest list is not properly loaded. Current value:", window.guestList);
 
-            // DON'T load sample data - show error instead
-            const errorMsg = document.getElementById('errorMessage');
-            if (errorMsg) {
-                errorMsg.textContent = "Error: Guest list not loaded. Please try refreshing the page.";
-                errorMsg.classList.remove('hidden');
+            // Try loading sample data if available
+            if (typeof window.loadSampleGuestData === 'function') {
+                console.log("Attempting to load sample guest data");
+                window.loadSampleGuestData();
+            } else {
+                const errorMsg = document.getElementById('errorMessage');
+                if (errorMsg) {
+                    // CHANGED: Error message in Vietnamese when Vietnamese is default
+                    errorMsg.textContent = window.currentLanguage === 'vi' ? 
+                        "Lỗi: Danh sách khách mời chưa được tải. Vui lòng làm mới trang." :
+                        "Error: Guest list not loaded. Please try refreshing the page.";
+                    errorMsg.classList.remove('hidden');
+                }
+                return;
             }
-            return;
         }
 
         // Make sure venue layout exists
