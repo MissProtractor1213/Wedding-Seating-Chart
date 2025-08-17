@@ -41,8 +41,8 @@ window.initializeVenueMap = function() {
                     name: 'brideGroom',
                     x: 880,
                     y: 650,
-                    width: 100,
-                    height: 200,
+                    width: 200,
+                    height: 150,
                     label: 'Bride and Groom'
                 },
                 // Dance Floor in the center
