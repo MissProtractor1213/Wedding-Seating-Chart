@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const bestGuestScore = Math.max(nameScore, vnNameScore);
 
             // Only log for the best matches to avoid console spam
-            if (bestGuestScore > 0.4) {
+            if (bestGuestScore > 0.6) {
                 console.log(`Guest "${guest.name}" similarity score: ${bestGuestScore.toFixed(2)}`);
             }
 
@@ -325,24 +325,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log(`Best match: ${bestMatch ? bestMatch.name : 'none'} with score ${bestScore.toFixed(2)}`);
 
-        // Only return a match if the similarity is above a threshold (0.4 or 40% similar)
-        return bestScore > 0.4 ? bestMatch : null;
+        // INCREASED THRESHOLD: Only return a match if the similarity is above 0.65 (65% similar)
+        // This prevents random matches while still allowing for minor typos
+        return bestScore > 0.65 ? bestMatch : null;
     }
 
     // Function to calculate similarity between two strings
     function calculateSimilarity(str1, str2) {
-        // Simple similarity algorithm (can be improved)
-        const longer = str1.length > str2.length ? str1 : str2;
-        const shorter = str1.length > str2.length ? str2 : str1;
-
-        let hits = 0;
-        for (let i = 0; i < shorter.length; i++) {
-            if (longer.indexOf(shorter[i]) !== -1) {
-                hits++;
+        // Improved similarity algorithm using Levenshtein distance concept
+        
+        // First check for very similar strings (typos)
+        const distance = levenshteinDistance(str1, str2);
+        const maxLength = Math.max(str1.length, str2.length);
+        
+        // Calculate similarity based on edit distance
+        const similarity = 1 - (distance / maxLength);
+        
+        // Also check if one string contains the other (for partial names)
+        const containmentBonus = (str1.includes(str2) || str2.includes(str1)) ? 0.3 : 0;
+        
+        return Math.min(1, similarity + containmentBonus);
+    }
+    
+    // Helper function to calculate Levenshtein distance (edit distance)
+    function levenshteinDistance(str1, str2) {
+        const matrix = [];
+        
+        // If strings are equal, distance is 0
+        if (str1 === str2) return 0;
+        
+        // If one string is empty, distance is length of the other
+        if (str1.length === 0) return str2.length;
+        if (str2.length === 0) return str1.length;
+        
+        // Initialize the matrix
+        for (let i = 0; i <= str2.length; i++) {
+            matrix[i] = [i];
+        }
+        
+        for (let j = 0; j <= str1.length; j++) {
+            matrix[0][j] = j;
+        }
+        
+        // Calculate distances
+        for (let i = 1; i <= str2.length; i++) {
+            for (let j = 1; j <= str1.length; j++) {
+                if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,  // substitution
+                        matrix[i][j - 1] + 1,       // insertion
+                        matrix[i - 1][j] + 1        // deletion
+                    );
+                }
             }
         }
-
-        return hits / longer.length;
+        
+        return matrix[str2.length][str1.length];
     }
 
     // Function to highlight a table, including VIP table (ID 46)
