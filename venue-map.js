@@ -42,7 +42,7 @@ window.initializeVenueMap = function() {
                     x: 880,
                     y: 650,
                     width: 100,
-                    height: 120,
+                    height: 200,
                     label: 'Bride and Groom'
                 },
                 // Dance Floor in the center
