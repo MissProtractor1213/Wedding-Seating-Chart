@@ -552,18 +552,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!window.guestList || !Array.isArray(window.guestList) || window.guestList.length === 0) {
             console.error("Guest list is not properly loaded. Current value:", window.guestList);
 
-            // Try loading sample data if available
-            if (typeof window.loadSampleGuestData === 'function') {
-                console.log("Attempting to load sample guest data");
-                window.loadSampleGuestData();
-            } else {
-                const errorMsg = document.getElementById('errorMessage');
-                if (errorMsg) {
-                    errorMsg.textContent = "Error: Guest list not loaded. Please try refreshing the page.";
-                    errorMsg.classList.remove('hidden');
-                }
-                return;
+            // DON'T load sample data - show error instead
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg) {
+                errorMsg.textContent = "Error: Guest list not loaded. Please try refreshing the page.";
+                errorMsg.classList.remove('hidden');
             }
+            return;
         }
 
         // Make sure venue layout exists
