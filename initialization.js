@@ -3,6 +3,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - starting application initialization');
     
+    // CHANGED: Set Vietnamese as the default language instead of English
+    if (!window.currentLanguage) {
+        window.currentLanguage = localStorage.getItem('weddinglanguage') || 'vi'; // Changed from 'en' to 'vi'
+    }
+    
     // ADDED: Display loading message
     const loadingMessage = document.createElement('div');
     loadingMessage.id = 'loadingMessage';
@@ -13,7 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingMessage.style.textAlign = 'center';
     loadingMessage.style.margin = '20px auto';
     loadingMessage.style.maxWidth = '400px';
-    loadingMessage.innerHTML = '<p>Loading guest data... Please wait.</p>';
+    
+    // CHANGED: Set loading message in Vietnamese by default
+    loadingMessage.innerHTML = '<p>Đang tải dữ liệu khách mời... Vui lòng đợi.</p>';
     
     // Add it after the header
     const headerElement = document.querySelector('header');
@@ -48,6 +55,19 @@ document.addEventListener('DOMContentLoaded', function() {
             searchButton.disabled = false;
         }
         
+        // ADDED: Apply Vietnamese translations by default after initialization
+        if (typeof window.applyTranslations === 'function') {
+            window.applyTranslations();
+        }
+        
+        // ADDED: Update language button state to show Vietnamese as active
+        const englishBtn = document.getElementById('englishBtn');
+        const vietnameseBtn = document.getElementById('vietnameseBtn');
+        if (englishBtn && vietnameseBtn) {
+            englishBtn.classList.remove('active');
+            vietnameseBtn.classList.add('active');
+        }
+        
         // Log some stats for debugging
         if (window.guestList && Array.isArray(window.guestList)) {
             console.log(`Loaded ${window.guestList.length} guests`);
@@ -69,10 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingMessage.remove();
         }
         
-        // Show error message to user
+        // CHANGED: Show error message in Vietnamese
         const errorMessage = document.getElementById('errorMessage');
         if (errorMessage) {
-            errorMessage.textContent = `Failed to initialize application: ${error.message}`;
+            errorMessage.textContent = `Không thể khởi tạo ứng dụng: ${error.message}`;
             errorMessage.classList.remove('hidden');
         }
     }
@@ -85,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (success) {
                     onInitializationSuccess();
                 } else {
-                    onInitializationFailure(new Error('Initialization returned false'));
+                    onInitializationFailure(new Error('Khởi tạo trả về false'));
                 }
             })
             .catch(error => {
@@ -104,11 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(onInitializationSuccess)
                     .catch(onInitializationFailure);
             } else {
-                onInitializationFailure(new Error('initializeFromCSV function still not found after loading script'));
+                onInitializationFailure(new Error('Không tìm thấy hàm initializeFromCSV sau khi tải script'));
             }
         };
         scriptElement.onerror = function() {
-            onInitializationFailure(new Error('Failed to load csv-processor.js dynamically'));
+            onInitializationFailure(new Error('Không thể tải csv-processor.js động'));
         };
         document.head.appendChild(scriptElement);
     }
@@ -123,10 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage.classList.add('hidden');
         }
         
-        // Show loading message again
+        // Show loading message again (in Vietnamese)
         const loadingMessage = document.getElementById('loadingMessage');
         if (loadingMessage) {
             loadingMessage.style.display = 'block';
+            loadingMessage.innerHTML = '<p>Đang tải dữ liệu khách mời... Vui lòng đợi.</p>';
         }
         
         // Try to initialize again
@@ -136,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (success) {
                         onInitializationSuccess();
                     } else {
-                        onInitializationFailure(new Error('Retry initialization returned false'));
+                        onInitializationFailure(new Error('Thử lại khởi tạo trả về false'));
                     }
                 })
                 .catch(error => {
@@ -144,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         } else {
             console.error('Retry failed: initializeFromCSV function not found');
-            onInitializationFailure(new Error('Required functions not found for retry'));
+            onInitializationFailure(new Error('Không tìm thấy các hàm cần thiết để thử lại'));
         }
     };
     
@@ -154,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
         retryButton.addEventListener('click', window.retryInitialization);
     }
 });
+
 // Add this to the initialization.js file or create a new script file
 
 // Function to initialize the application
@@ -163,13 +185,18 @@ function initializeApplication() {
     // IMPORTANT FIX: Make sure translations are accessible globally
     window.translations = translations;
     
+    // CHANGED: Set Vietnamese as default language if not already set
+    if (!window.currentLanguage) {
+        window.currentLanguage = 'vi'; // Changed from 'en' to 'vi'
+    }
+    
     // Make sure we have the venue map initialization function
     if (typeof window.initializeVenueMap !== 'function') {
         console.error('Venue map initialization function not found');
-        // Display an error message
+        // CHANGED: Display error message in Vietnamese
         const errorMessage = document.getElementById('errorMessage');
         if (errorMessage) {
-            errorMessage.textContent = 'Could not initialize venue map. Please refresh the page.';
+            errorMessage.textContent = 'Không thể khởi tạo bản đồ địa điểm. Vui lòng làm mới trang.';
             errorMessage.classList.remove('hidden');
         }
         return;
@@ -218,15 +245,6 @@ function searchGuest(name) {
         if (guestNameElement) {
             guestNameElement.textContent = name;
         }
-        
-        /*// Set table name - for demo, we'll use Table 35
-        const tableNameElement = document.getElementById('tableName');
-        if (tableNameElement) {
-            tableNameElement.textContent = 'Table 35';
-        }
-        
-        // Highlight the table
-        highlightTable(35);*/
         
         // Show the result container
         resultContainer.classList.remove('hidden');
@@ -336,9 +354,9 @@ function applyTranslations() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing application...');
     
-    // Set default language if not set
+    // CHANGED: Set Vietnamese as default language if not set
     if (!window.currentLanguage) {
-        window.currentLanguage = localStorage.getItem('weddinglanguage') || 'en';
+        window.currentLanguage = localStorage.getItem('weddinglanguage') || 'vi'; // Changed from 'en' to 'vi'
     }
     
     // Initialize the application
