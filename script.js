@@ -325,14 +325,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log(`Best match: ${bestMatch ? bestMatch.name : 'none'} with score ${bestScore.toFixed(2)}`);
 
-        // INCREASED THRESHOLD: Only return a match if the similarity is above 0.65 (65% similar)
+        // MUCH STRICTER THRESHOLD: Only return a match if the similarity is above 0.75 (75% similar)
         // This prevents random matches while still allowing for minor typos
-        return bestScore > 0.65 ? bestMatch : null;
+        return bestScore > 0.75 ? bestMatch : null;
     }
 
     // Function to calculate similarity between two strings
     function calculateSimilarity(str1, str2) {
-        // Improved similarity algorithm using Levenshtein distance concept
+        // Strict similarity algorithm using Levenshtein distance
         
         // First check for very similar strings (typos)
         const distance = levenshteinDistance(str1, str2);
@@ -341,10 +341,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate similarity based on edit distance
         const similarity = 1 - (distance / maxLength);
         
-        // Also check if one string contains the other (for partial names)
-        const containmentBonus = (str1.includes(str2) || str2.includes(str1)) ? 0.3 : 0;
+        // REMOVED containment bonus to be stricter - only pure similarity counts
+        // This prevents partial matches from inflating the score
         
-        return Math.min(1, similarity + containmentBonus);
+        return similarity;
     }
     
     // Helper function to calculate Levenshtein distance (edit distance)
