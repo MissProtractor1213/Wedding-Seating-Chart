@@ -325,9 +325,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log(`Best match: ${bestMatch ? bestMatch.name : 'none'} with score ${bestScore.toFixed(2)}`);
 
-        // MUCH STRICTER THRESHOLD: Only return a match if the similarity is above 0.75 (75% similar)
-        // This prevents random matches while still allowing for minor typos
-        return bestScore > 0.75 ? bestMatch : null;
+        // VERY STRICT THRESHOLD: Only return a match if the similarity is above 0.85 (85% similar)
+        // This only allows for 1-2 character typos, not completely different names
+        return bestScore > 0.85 ? bestMatch : null;
     }
 
     // Function to calculate similarity between two strings
