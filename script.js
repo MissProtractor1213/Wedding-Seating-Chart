@@ -782,10 +782,10 @@ document.addEventListener('DOMContentLoaded', function() {
             selectorContainer.style.margin = '40px auto';
             selectorContainer.style.maxWidth = '700px';
             
-            // Insert after the search container
-            const searchContainer = document.querySelector('.search-container');
-            if (searchContainer && searchContainer.parentNode) {
-                searchContainer.parentNode.parentNode.insertBefore(selectorContainer, searchContainer.parentNode.nextSibling);
+            // Insert after the floral-card div to avoid interfering with the floral frame
+            const floralCard = document.querySelector('.floral-card');
+            if (floralCard && floralCard.parentNode) {
+                floralCard.parentNode.insertBefore(selectorContainer, floralCard.nextSibling);
             }
         }
         
@@ -794,43 +794,79 @@ document.addEventListener('DOMContentLoaded', function() {
             (window.currentLanguage === 'en' ? ' (on the opposite side)' : ' (ở bên đối diện)') : '';
         
         let html = `
-            <div class="result-card">
-                <h3 style="color: #9e7b5e; text-align: center; margin-bottom: 15px;">
+            <div class="result-card" style="background-color: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);">
+                <h3 style="font-family: 'Playfair Display', serif; font-size: 1.8rem; color: #333; text-align: center; margin-bottom: 15px;">
                     ${window.currentLanguage === 'en' ? 
                         `Multiple guests named "${searchName}" found${sideText}` : 
                         `Tìm thấy nhiều khách tên "${searchName}"${sideText}`}
                 </h3>
-                <p style="text-align: center; margin-bottom: 20px;">
+                <p style="text-align: center; margin-bottom: 20px; color: #666;">
                     ${window.currentLanguage === 'en' ? 
-                        'Please select the correct guest:' : 
-                        'Vui lòng chọn khách đúng:'}
+                        'Please select the correct guest based on who they are seated with:' : 
+                        'Vui lòng chọn khách đúng dựa trên những người ngồi cùng bàn:'}
                 </p>
-                <div class="duplicate-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="duplicate-list" style="display: flex; flex-direction: column; gap: 15px;">
         `;
         
         duplicates.forEach((guest, index) => {
-            const tableName = guest.table === 46 ? 
+            // Get tablemates for this guest
+            let tablemates = [];
+            const isVipGuest = guest.table === 46;
+            
+            if (isVipGuest) {
+                tablemates = window.guestList.filter(g => 
+                    (g.table === 46) && g.name !== guest.name
+                );
+            } else {
+                tablemates = window.guestList.filter(g => 
+                    g.table === guest.table && g.name !== guest.name
+                );
+            }
+            
+            // Get first 3-4 tablemate names for display
+            const displayTablemates = tablemates.slice(0, 4).map(t => t.name);
+            const hasMore = tablemates.length > 4;
+            
+            const tableName = isVipGuest ? 
                 (window.currentLanguage === 'vi' ? 'Bàn VIP' : 'VIP Table') :
                 (guest.tableObject && guest.tableObject.name ? guest.tableObject.name : `Table ${guest.table}`);
             
             const sideName = window.currentLanguage === 'en' ? 
-                (guest.side.toLowerCase() === 'bride' ? 'Bride' : 'Groom') :
-                (guest.side.toLowerCase() === 'bride' ? 'Cô Dâu' : 'Chú Rể');
+                (guest.side.toLowerCase() === 'bride' ? "Bride's side" : "Groom's side") :
+                (guest.side.toLowerCase() === 'bride' ? 'Bên Cô Dâu' : 'Bên Chú Rể');
+            
+            // Format tablemates list
+            let tablematesText = '';
+            if (displayTablemates.length > 0) {
+                tablematesText = displayTablemates.join(', ');
+                if (hasMore) {
+                    tablematesText += window.currentLanguage === 'en' ? ', and others...' : ', và những người khác...';
+                }
+            } else {
+                tablematesText = window.currentLanguage === 'en' ? 'No other guests at this table' : 'Không có khách khác ở bàn này';
+            }
             
             html += `
                 <button class="duplicate-option" 
                         onclick="selectDuplicate(${index})"
-                        style="padding: 15px; 
-                               background-color: #f5f1ed; 
+                        style="padding: 20px; 
+                               background-color: #faf8f5; 
                                border: 2px solid #c896e0; 
-                               border-radius: 10px; 
+                               border-radius: 15px; 
                                cursor: pointer;
                                transition: all 0.3s;
-                               text-align: left;">
-                    <strong style="font-size: 1.1rem;">${guest.name}</strong><br>
-                    <span style="color: #666; font-size: 0.9rem;">
-                        ${tableName} • ${window.currentLanguage === 'en' ? 'Guest of the' : 'Khách của'} ${sideName}
-                    </span>
+                               text-align: left;
+                               width: 100%;">
+                    <div style="margin-bottom: 8px;">
+                        <strong style="font-size: 1.2rem; color: #333;">${guest.name}</strong>
+                        <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">${sideName}</span>
+                    </div>
+                    <div style="color: #666; font-size: 0.95rem; line-height: 1.5;">
+                        <strong>${window.currentLanguage === 'en' ? 'Seated with:' : 'Ngồi cùng:'}</strong> ${tablematesText}
+                    </div>
+                    <div style="color: #999; font-size: 0.85rem; margin-top: 5px;">
+                        ${tableName}
+                    </div>
                 </button>
             `;
         });
@@ -838,7 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `
                 </div>
                 <button id="duplicateBackButton" 
-                        style="margin-top: 20px; width: 100%;"
+                        style="margin-top: 25px; width: 100%; background-color: #c896e0; color: white; padding: 15px 25px; border: none; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-family: 'Lato', sans-serif; letter-spacing: 1px;"
                         onclick="hideDuplicateSelector()">
                     ${window.currentLanguage === 'en' ? 'Back to Search' : 'Quay Lại Tìm Kiếm'}
                 </button>
@@ -855,12 +891,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const buttons = selectorContainer.querySelectorAll('.duplicate-option');
         buttons.forEach(button => {
             button.addEventListener('mouseenter', function() {
-                this.style.backgroundColor = '#e8e0d8';
+                this.style.backgroundColor = '#f5f1ed';
                 this.style.transform = 'scale(1.02)';
+                this.style.boxShadow = '0 4px 10px rgba(200, 150, 224, 0.2)';
             });
             button.addEventListener('mouseleave', function() {
-                this.style.backgroundColor = '#f5f1ed';
+                this.style.backgroundColor = '#faf8f5';
                 this.style.transform = 'scale(1)';
+                this.style.boxShadow = 'none';
             });
         });
     }
