@@ -328,41 +328,104 @@ document.addEventListener('DOMContentLoaded', function() {
         return Math.max(...scores, 0);
     }
 
-    // Find guest with improved matching
+    // Find guest with improved matching - now handles duplicates
     function findGuest(searchName, selectedSide) {
         if (!window.guestList || !Array.isArray(window.guestList)) {
             console.error('Guest list is not properly initialized');
-            return { guest: null, foundOnOppositeSide: false };
+            return { guest: null, foundOnOppositeSide: false, duplicates: [] };
         }
 
         console.log(`Finding guest: name="${searchName}", selected side="${selectedSide}"`);
 
         const normalizedSearchName = searchName.toLowerCase().trim();
 
-        // Try to find on selected side first
-        let guest = findGuestOnSide(normalizedSearchName, selectedSide);
+        // Find ALL matching guests across both sides
+        const allMatches = findAllMatchingGuests(normalizedSearchName);
         
-        // If not found, try opposite side
-        if (!guest) {
-            const oppositeSide = selectedSide.toLowerCase() === 'bride' ? 'groom' : 'bride';
-            console.log(`Guest not found on ${selectedSide} side, trying ${oppositeSide} side`);
-            
-            const oppositeGuest = findGuestOnSide(normalizedSearchName, oppositeSide);
-            
-            if (oppositeGuest) {
-                console.log(`Found guest on ${oppositeSide} side instead`);
-                return { 
-                    guest: oppositeGuest, 
-                    foundOnOppositeSide: true, 
-                    oppositeSide: oppositeSide 
+        if (allMatches.length === 0) {
+            return { guest: null, foundOnOppositeSide: false, duplicates: [] };
+        }
+        
+        // Separate matches by side
+        const selectedSideMatches = allMatches.filter(g => 
+            (g.side || "").toLowerCase() === selectedSide.toLowerCase()
+        );
+        const oppositeSideMatches = allMatches.filter(g => 
+            (g.side || "").toLowerCase() !== selectedSide.toLowerCase()
+        );
+        
+        console.log(`Found ${selectedSideMatches.length} matches on ${selectedSide} side, ${oppositeSideMatches.length} on opposite side`);
+        
+        // Case 1: Multiple matches on the same side (duplicates)
+        if (selectedSideMatches.length > 1) {
+            return {
+                guest: null,
+                foundOnOppositeSide: false,
+                duplicates: selectedSideMatches,
+                allDuplicates: allMatches
+            };
+        }
+        
+        // Case 2: One match on selected side
+        if (selectedSideMatches.length === 1) {
+            // Check if there are also matches on the opposite side (warn user)
+            return {
+                guest: selectedSideMatches[0],
+                foundOnOppositeSide: false,
+                duplicates: [],
+                additionalMatches: oppositeSideMatches
+            };
+        }
+        
+        // Case 3: Only matches on opposite side
+        if (oppositeSideMatches.length >= 1) {
+            // If multiple on opposite side, show all
+            if (oppositeSideMatches.length > 1) {
+                return {
+                    guest: null,
+                    foundOnOppositeSide: true,
+                    duplicates: oppositeSideMatches,
+                    oppositeSide: oppositeSideMatches[0].side.toLowerCase()
+                };
+            } else {
+                return {
+                    guest: oppositeSideMatches[0],
+                    foundOnOppositeSide: true,
+                    oppositeSide: oppositeSideMatches[0].side.toLowerCase(),
+                    duplicates: []
                 };
             }
         }
 
         return { 
-            guest: guest, 
-            foundOnOppositeSide: false 
+            guest: null, 
+            foundOnOppositeSide: false,
+            duplicates: []
         };
+    }
+    
+    // New function to find ALL matching guests across both sides
+    function findAllMatchingGuests(normalizedSearchName) {
+        const matches = [];
+        const scores = new Map();
+        
+        for (const guest of window.guestList) {
+            const score = smartNameMatch(
+                normalizedSearchName, 
+                guest.name || "", 
+                guest.vietnamese_name || null
+            );
+            
+            if (score >= 0.75) {
+                matches.push(guest);
+                scores.set(guest, score);
+            }
+        }
+        
+        // Sort by score (best matches first)
+        matches.sort((a, b) => (scores.get(b) || 0) - (scores.get(a) || 0));
+        
+        return matches;
     }
 
     // Helper function to find a guest on a specific side
@@ -567,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Main search function
+    // Main search function - now handles duplicates
     function searchGuest() {
         console.log("Search function called");
 
@@ -610,10 +673,14 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.classList.add('hidden');
         noResultContainer.classList.add('hidden');
         
-        // Clear previous notices
+        // Clear previous notices and duplicate selectors
         const oldNotice = document.getElementById('searchNotice');
         if (oldNotice) {
             oldNotice.remove();
+        }
+        const oldDuplicateSelector = document.getElementById('duplicateSelector');
+        if (oldDuplicateSelector) {
+            oldDuplicateSelector.remove();
         }
 
         // Don't search if empty
@@ -622,9 +689,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Find the guest
+        // Find the guest(s)
         const result = findGuest(searchName, selectedSide);
         
+        // Handle multiple matches (duplicates)
+        if (result.duplicates && result.duplicates.length > 0) {
+            console.log(`Found ${result.duplicates.length} guests with the same name`);
+            showDuplicateSelector(result.duplicates, searchName, result.foundOnOppositeSide);
+            return;
+        }
+        
+        // Handle single match
         if (result.guest) {
             console.log("Guest found:", result.guest);
             
@@ -644,6 +719,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Display guest information
             displayGuestInfo(result.guest, !exactMatch);
+            
+            // Check if there are additional matches on the other side (same name, different side)
+            if (result.additionalMatches && result.additionalMatches.length > 0) {
+                showAdditionalMatchesNotice(result.guest, result.additionalMatches);
+            }
 
             // Handle wrong side selection
             if (result.foundOnOppositeSide) {
@@ -686,6 +766,185 @@ document.addEventListener('DOMContentLoaded', function() {
             noResultContainer.classList.remove('hidden');
         }
     }
+    
+    // New function to show duplicate selector when multiple guests have the same name
+    function showDuplicateSelector(duplicates, searchName, isOppositeSide) {
+        // Hide other containers
+        resultContainer.classList.add('hidden');
+        noResultContainer.classList.add('hidden');
+        
+        // Create or get duplicate selector container
+        let selectorContainer = document.getElementById('duplicateSelector');
+        if (!selectorContainer) {
+            selectorContainer = document.createElement('div');
+            selectorContainer.id = 'duplicateSelector';
+            selectorContainer.className = 'result-container';
+            selectorContainer.style.margin = '40px auto';
+            selectorContainer.style.maxWidth = '700px';
+            
+            // Insert after the search container
+            const searchContainer = document.querySelector('.search-container');
+            if (searchContainer && searchContainer.parentNode) {
+                searchContainer.parentNode.parentNode.insertBefore(selectorContainer, searchContainer.parentNode.nextSibling);
+            }
+        }
+        
+        // Build the HTML for duplicate selection
+        const sideText = isOppositeSide ? 
+            (window.currentLanguage === 'en' ? ' (on the opposite side)' : ' (ở bên đối diện)') : '';
+        
+        let html = `
+            <div class="result-card">
+                <h3 style="color: #9e7b5e; text-align: center; margin-bottom: 15px;">
+                    ${window.currentLanguage === 'en' ? 
+                        `Multiple guests named "${searchName}" found${sideText}` : 
+                        `Tìm thấy nhiều khách tên "${searchName}"${sideText}`}
+                </h3>
+                <p style="text-align: center; margin-bottom: 20px;">
+                    ${window.currentLanguage === 'en' ? 
+                        'Please select the correct guest:' : 
+                        'Vui lòng chọn khách đúng:'}
+                </p>
+                <div class="duplicate-list" style="display: flex; flex-direction: column; gap: 10px;">
+        `;
+        
+        duplicates.forEach((guest, index) => {
+            const tableName = guest.table === 46 ? 
+                (window.currentLanguage === 'vi' ? 'Bàn VIP' : 'VIP Table') :
+                (guest.tableObject && guest.tableObject.name ? guest.tableObject.name : `Table ${guest.table}`);
+            
+            const sideName = window.currentLanguage === 'en' ? 
+                (guest.side.toLowerCase() === 'bride' ? 'Bride' : 'Groom') :
+                (guest.side.toLowerCase() === 'bride' ? 'Cô Dâu' : 'Chú Rể');
+            
+            html += `
+                <button class="duplicate-option" 
+                        onclick="selectDuplicate(${index})"
+                        style="padding: 15px; 
+                               background-color: #f5f1ed; 
+                               border: 2px solid #c896e0; 
+                               border-radius: 10px; 
+                               cursor: pointer;
+                               transition: all 0.3s;
+                               text-align: left;">
+                    <strong style="font-size: 1.1rem;">${guest.name}</strong><br>
+                    <span style="color: #666; font-size: 0.9rem;">
+                        ${tableName} • ${window.currentLanguage === 'en' ? 'Guest of the' : 'Khách của'} ${sideName}
+                    </span>
+                </button>
+            `;
+        });
+        
+        html += `
+                </div>
+                <button id="duplicateBackButton" 
+                        style="margin-top: 20px; width: 100%;"
+                        onclick="hideDuplicateSelector()">
+                    ${window.currentLanguage === 'en' ? 'Back to Search' : 'Quay Lại Tìm Kiếm'}
+                </button>
+            </div>
+        `;
+        
+        selectorContainer.innerHTML = html;
+        selectorContainer.classList.remove('hidden');
+        
+        // Store duplicates globally for selection
+        window.currentDuplicates = duplicates;
+        
+        // Add hover effect to buttons
+        const buttons = selectorContainer.querySelectorAll('.duplicate-option');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#e8e0d8';
+                this.style.transform = 'scale(1.02)';
+            });
+            button.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#f5f1ed';
+                this.style.transform = 'scale(1)';
+            });
+        });
+    }
+    
+    // Function to show notice about additional matches on the other side
+    function showAdditionalMatchesNotice(selectedGuest, additionalMatches) {
+        let noticeEl = document.getElementById('additionalMatchNotice');
+        if (!noticeEl) {
+            noticeEl = document.createElement('div');
+            noticeEl.id = 'additionalMatchNotice';
+            noticeEl.style.marginTop = '15px';
+            noticeEl.style.padding = '12px';
+            noticeEl.style.backgroundColor = '#e8f4f8';
+            noticeEl.style.border = '1px solid #b8e0ea';
+            noticeEl.style.borderRadius = '8px';
+            noticeEl.style.fontSize = '0.9rem';
+            
+            const tablematesSection = document.querySelector('.tablemates');
+            if (tablematesSection) {
+                tablematesSection.parentNode.insertBefore(noticeEl, tablematesSection);
+            }
+        }
+        
+        const otherSide = selectedGuest.side.toLowerCase() === 'bride' ? 'groom' : 'bride';
+        const otherSideName = window.currentLanguage === 'en' ? 
+            (otherSide === 'bride' ? 'Bride' : 'Groom') :
+            (otherSide === 'bride' ? 'Cô Dâu' : 'Chú Rể');
+        
+        let message = window.currentLanguage === 'en' ?
+            `ℹ️ Note: There is also a guest named "${selectedGuest.name}" on the ${otherSideName}'s side` :
+            `ℹ️ Lưu ý: Cũng có một khách tên "${selectedGuest.name}" ở bên ${otherSideName}`;
+        
+        if (additionalMatches.length > 1) {
+            message = window.currentLanguage === 'en' ?
+                `ℹ️ Note: There are ${additionalMatches.length} other guests named "${selectedGuest.name}" on the ${otherSideName}'s side` :
+                `ℹ️ Lưu ý: Có ${additionalMatches.length} khách khác tên "${selectedGuest.name}" ở bên ${otherSideName}`;
+        }
+        
+        noticeEl.innerHTML = message;
+    }
+    
+    // Global function to select a duplicate
+    window.selectDuplicate = function(index) {
+        if (!window.currentDuplicates || !window.currentDuplicates[index]) {
+            console.error('Invalid duplicate selection');
+            return;
+        }
+        
+        const selectedGuest = window.currentDuplicates[index];
+        
+        // Ensure guest has tableObject
+        if (!selectedGuest.tableObject && selectedGuest.table) {
+            if (window.venueLayout && window.venueLayout.tables) {
+                selectedGuest.tableObject = window.venueLayout.tables.find(t => 
+                    t.id === parseInt(selectedGuest.table)
+                );
+            }
+        }
+        
+        // Hide duplicate selector
+        const selectorContainer = document.getElementById('duplicateSelector');
+        if (selectorContainer) {
+            selectorContainer.classList.add('hidden');
+        }
+        
+        // Update the side selector if needed
+        const guestSide = selectedGuest.side.toLowerCase();
+        const sideInput = document.querySelector(`input[name="side"][value="${guestSide}"]`);
+        if (sideInput && !sideInput.checked) {
+            sideInput.checked = true;
+        }
+        
+        // Display the selected guest
+        displayGuestInfo(selectedGuest, false);
+    };
+    
+    // Global function to hide duplicate selector
+    window.hideDuplicateSelector = function() {
+        const selectorContainer = document.getElementById('duplicateSelector');
+        if (selectorContainer) {
+            selectorContainer.classList.add('hidden');
+        }
+        nameSearchInput.focus();
+    };
 
     // Make functions globally available
     window.highlightTable = highlightTable;
