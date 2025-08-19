@@ -51,6 +51,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (noticeEl) {
                 noticeEl.remove();
             }
+            
+            // Clear additional match notice
+            const additionalNotice = document.getElementById('additionalMatchNotice');
+            if (additionalNotice) {
+                additionalNotice.remove();
+            }
+            
+            // Clear duplicate selector if it exists
+            const duplicateSelector = document.getElementById('duplicateSelector');
+            if (duplicateSelector) {
+                duplicateSelector.remove();
+            }
         });
     }
 
@@ -673,11 +685,17 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.classList.add('hidden');
         noResultContainer.classList.add('hidden');
         
-        // Clear previous notices and duplicate selectors
+        // Clear ALL previous notices and selectors
         const oldNotice = document.getElementById('searchNotice');
         if (oldNotice) {
             oldNotice.remove();
         }
+        
+        const oldAdditionalNotice = document.getElementById('additionalMatchNotice');
+        if (oldAdditionalNotice) {
+            oldAdditionalNotice.remove();
+        }
+        
         const oldDuplicateSelector = document.getElementById('duplicateSelector');
         if (oldDuplicateSelector) {
             oldDuplicateSelector.remove();
