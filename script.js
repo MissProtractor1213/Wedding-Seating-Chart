@@ -296,48 +296,63 @@ document.addEventListener('DOMContentLoaded', function() {
         const guest = guestName.toLowerCase().trim();
         const vietnamese = vietnameseName ? vietnameseName.toLowerCase().trim() : null;
         
-        let scores = [];
-        
-        // Strategy 1: Full name exact match
+        // Strategy 1: Exact match (case-insensitive)
         if (search === guest || (vietnamese && search === vietnamese)) {
             return 1.0;
         }
         
-        // Strategy 2: Full name similarity
-        scores.push(calculateSimilarity(search, guest));
-        if (vietnamese) {
-            scores.push(calculateSimilarity(search, vietnamese));
+        // For everything else, we need to be more careful
+        let scores = [];
+        
+        // Strategy 2: Full name similarity (for typos in the exact same name)
+        const guestSimilarity = calculateSimilarity(search, guest);
+        // Only consider this a match if it's VERY similar (likely just a typo)
+        if (guestSimilarity >= 0.85) {
+            scores.push(guestSimilarity);
         }
         
-        // Strategy 3: Name parts matching (for partial searches)
-        const searchParts = search.split(/\s+/).filter(p => p.length > 0);
-        const guestParts = guest.split(/\s+/).filter(p => p.length > 0);
+        if (vietnamese) {
+            const vnSimilarity = calculateSimilarity(search, vietnamese);
+            if (vnSimilarity >= 0.85) {
+                scores.push(vnSimilarity);
+            }
+        }
+        
+        // Strategy 3: Check if one name contains the other (for partial searches)
+        // But ONLY if they're meaningful matches
+        const searchParts = search.split(/\s+/).filter(p => p.length > 2); // Ignore very short parts
+        const guestParts = guest.split(/\s+/).filter(p => p.length > 2);
         
         if (searchParts.length > 0 && guestParts.length > 0) {
-            // Check if search is a subset of guest name parts
-            let partScores = [];
+            // Check if ALL search parts match some guest parts exactly
+            let allPartsMatch = true;
+            let matchedParts = 0;
             
             for (const searchPart of searchParts) {
-                let bestPartScore = 0;
+                let foundMatch = false;
                 for (const guestPart of guestParts) {
-                    const partSim = calculateSimilarity(searchPart, guestPart);
-                    bestPartScore = Math.max(bestPartScore, partSim);
+                    // Require exact match of parts, not fuzzy
+                    if (searchPart === guestPart) {
+                        foundMatch = true;
+                        matchedParts++;
+                        break;
+                    }
                 }
-                partScores.push(bestPartScore);
+                if (!foundMatch) {
+                    allPartsMatch = false;
+                    break;
+                }
             }
             
-            // All parts must match reasonably well
-            const avgPartScore = partScores.reduce((a, b) => a + b, 0) / partScores.length;
-            const minPartScore = Math.min(...partScores);
-            
-            // Only consider part matching if all parts match well
-            if (minPartScore > 0.8) {
-                scores.push(avgPartScore);
+            // Only count as a match if all search parts matched exactly
+            if (allPartsMatch && matchedParts === searchParts.length) {
+                // Give a high score for partial exact matches
+                scores.push(0.9);
             }
         }
         
-        // Return the best score
-        return Math.max(...scores, 0);
+        // Return the best score, or 0 if no good matches
+        return scores.length > 0 ? Math.max(...scores) : 0;
     }
 
     // Find guest with improved matching - now handles duplicates
@@ -396,13 +411,38 @@ document.addEventListener('DOMContentLoaded', function() {
         const scores = new Map();
         
         for (const guest of window.guestList) {
+            const guestName = (guest.name || "").toLowerCase().trim();
+            const vietnameseName = (guest.vietnamese_name || "").toLowerCase().trim();
+            
+            // First check for EXACT matches only
+            if (guestName === normalizedSearchName || vietnameseName === normalizedSearchName) {
+                matches.push(guest);
+                scores.set(guest, 1.0); // Perfect score for exact match
+                continue; // Skip fuzzy matching for exact matches
+            }
+            
+            // Only do fuzzy matching if we have NO exact matches yet
+            // This will be checked after the loop
+        }
+        
+        // If we found exact matches, return only those
+        if (matches.length > 0) {
+            console.log(`Found ${matches.length} exact matches for "${normalizedSearchName}"`);
+            return matches;
+        }
+        
+        // Only if NO exact matches were found, try fuzzy matching
+        console.log(`No exact matches found for "${normalizedSearchName}", trying fuzzy match...`);
+        
+        for (const guest of window.guestList) {
             const score = smartNameMatch(
                 normalizedSearchName, 
                 guest.name || "", 
                 guest.vietnamese_name || null
             );
             
-            if (score >= 0.75) {
+            // Use a high threshold for fuzzy matching to avoid false positives
+            if (score >= 0.85 && score < 1.0) { // Exclude perfect matches we already checked
                 matches.push(guest);
                 scores.set(guest, score);
             }
@@ -411,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Sort by score (best matches first)
         matches.sort((a, b) => (scores.get(b) || 0) - (scores.get(a) || 0));
         
+        console.log(`Found ${matches.length} fuzzy matches for "${normalizedSearchName}"`);
         return matches;
     }
 
