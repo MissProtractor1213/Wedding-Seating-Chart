@@ -358,59 +358,33 @@ document.addEventListener('DOMContentLoaded', function() {
             return { guest: null, foundOnOppositeSide: false, duplicates: [] };
         }
         
-        // Separate matches by side
-        const selectedSideMatches = allMatches.filter(g => 
-            (g.side || "").toLowerCase() === selectedSide.toLowerCase()
-        );
-        const oppositeSideMatches = allMatches.filter(g => 
-            (g.side || "").toLowerCase() !== selectedSide.toLowerCase()
-        );
-        
-        console.log(`Found ${selectedSideMatches.length} matches on ${selectedSide} side, ${oppositeSideMatches.length} on opposite side`);
-        
-        // Case 1: Multiple matches on the same side (duplicates)
-        if (selectedSideMatches.length > 1) {
+        // If there are multiple matches (2 or more), show them all regardless of side
+        if (allMatches.length > 1) {
+            console.log(`Found ${allMatches.length} total matches for "${searchName}"`);
             return {
                 guest: null,
                 foundOnOppositeSide: false,
-                duplicates: selectedSideMatches,
-                allDuplicates: allMatches
+                duplicates: allMatches,
+                showAllDuplicates: true
             };
         }
         
-        // Case 2: One match on selected side
-        if (selectedSideMatches.length === 1) {
-            // Check if there are also matches on the opposite side (warn user)
+        // Single match - check if it's on the correct side
+        const singleMatch = allMatches[0];
+        const matchSide = (singleMatch.side || "").toLowerCase();
+        const isCorrectSide = matchSide === selectedSide.toLowerCase();
+        
+        if (!isCorrectSide) {
             return {
-                guest: selectedSideMatches[0],
-                foundOnOppositeSide: false,
-                duplicates: [],
-                additionalMatches: oppositeSideMatches
+                guest: singleMatch,
+                foundOnOppositeSide: true,
+                oppositeSide: matchSide,
+                duplicates: []
             };
         }
         
-        // Case 3: Only matches on opposite side
-        if (oppositeSideMatches.length >= 1) {
-            // If multiple on opposite side, show all
-            if (oppositeSideMatches.length > 1) {
-                return {
-                    guest: null,
-                    foundOnOppositeSide: true,
-                    duplicates: oppositeSideMatches,
-                    oppositeSide: oppositeSideMatches[0].side.toLowerCase()
-                };
-            } else {
-                return {
-                    guest: oppositeSideMatches[0],
-                    foundOnOppositeSide: true,
-                    oppositeSide: oppositeSideMatches[0].side.toLowerCase(),
-                    duplicates: []
-                };
-            }
-        }
-
-        return { 
-            guest: null, 
+        return {
+            guest: singleMatch,
             foundOnOppositeSide: false,
             duplicates: []
         };
@@ -807,87 +781,123 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Build the HTML for duplicate selection
-        const sideText = isOppositeSide ? 
-            (window.currentLanguage === 'en' ? ' (on the opposite side)' : ' (ở bên đối diện)') : '';
+        // Sort duplicates by side (bride first) and then by table number
+        duplicates.sort((a, b) => {
+            if (a.side !== b.side) {
+                return a.side.toLowerCase() === 'bride' ? -1 : 1;
+            }
+            return a.table - b.table;
+        });
+        
+        // Group by side for better display
+        const brideGuests = duplicates.filter(g => g.side.toLowerCase() === 'bride');
+        const groomGuests = duplicates.filter(g => g.side.toLowerCase() === 'groom');
         
         let html = `
             <div class="result-card" style="background-color: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);">
                 <h3 style="font-family: 'Playfair Display', serif; font-size: 1.8rem; color: #333; text-align: center; margin-bottom: 15px;">
                     ${window.currentLanguage === 'en' ? 
-                        `Multiple guests named "${searchName}" found${sideText}` : 
-                        `Tìm thấy nhiều khách tên "${searchName}"${sideText}`}
+                        `Found ${duplicates.length} guests named "${searchName}"` : 
+                        `Tìm thấy ${duplicates.length} khách tên "${searchName}"`}
                 </h3>
-                <p style="text-align: center; margin-bottom: 20px; color: #666;">
+                <p style="text-align: center; margin-bottom: 25px; color: #666;">
                     ${window.currentLanguage === 'en' ? 
                         'Please select the correct guest based on who they are seated with:' : 
                         'Vui lòng chọn khách đúng dựa trên những người ngồi cùng bàn:'}
                 </p>
-                <div class="duplicate-list" style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="duplicate-list" style="display: flex; flex-direction: column; gap: 20px;">
         `;
         
-        duplicates.forEach((guest, index) => {
-            // Get tablemates for this guest
-            let tablemates = [];
-            const isVipGuest = guest.table === 46;
+        // Function to add a section for a side
+        const addSideSection = (guests, sideName) => {
+            if (guests.length === 0) return '';
             
-            if (isVipGuest) {
-                tablemates = window.guestList.filter(g => 
-                    (g.table === 46) && g.name !== guest.name
-                );
-            } else {
-                tablemates = window.guestList.filter(g => 
-                    g.table === guest.table && g.name !== guest.name
-                );
+            let sectionHtml = '';
+            if (duplicates.length > 2) { // Only show side headers if there are many duplicates
+                sectionHtml += `
+                    <div style="margin-top: 10px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e0c8ae;">
+                        <strong style="color: #9e7b5e; font-size: 1rem;">
+                            ${window.currentLanguage === 'en' ? `${sideName}'s Guests` : `Khách của ${sideName === 'Bride' ? 'Cô Dâu' : 'Chú Rể'}`}
+                        </strong>
+                    </div>
+                `;
             }
             
-            // Get first 3-4 tablemate names for display
-            const displayTablemates = tablemates.slice(0, 4).map(t => t.name);
-            const hasMore = tablemates.length > 4;
-            
-            const tableName = isVipGuest ? 
-                (window.currentLanguage === 'vi' ? 'Bàn VIP' : 'VIP Table') :
-                (guest.tableObject && guest.tableObject.name ? guest.tableObject.name : `Table ${guest.table}`);
-            
-            const sideName = window.currentLanguage === 'en' ? 
-                (guest.side.toLowerCase() === 'bride' ? "Bride's side" : "Groom's side") :
-                (guest.side.toLowerCase() === 'bride' ? 'Bên Cô Dâu' : 'Bên Chú Rể');
-            
-            // Format tablemates list
-            let tablematesText = '';
-            if (displayTablemates.length > 0) {
-                tablematesText = displayTablemates.join(', ');
-                if (hasMore) {
-                    tablematesText += window.currentLanguage === 'en' ? ', and others...' : ', và những người khác...';
+            guests.forEach((guest, index) => {
+                const globalIndex = duplicates.indexOf(guest);
+                
+                // Get tablemates for this guest
+                let tablemates = [];
+                const isVipGuest = guest.table === 46;
+                
+                if (isVipGuest) {
+                    tablemates = window.guestList.filter(g => 
+                        (g.table === 46) && g.name !== guest.name
+                    );
+                } else {
+                    tablemates = window.guestList.filter(g => 
+                        g.table === guest.table && g.name !== guest.name
+                    );
                 }
-            } else {
-                tablematesText = window.currentLanguage === 'en' ? 'No other guests at this table' : 'Không có khách khác ở bàn này';
-            }
+                
+                // Get first 3-4 tablemate names for display
+                const displayTablemates = tablemates.slice(0, 4).map(t => t.name);
+                const hasMore = tablemates.length > 4;
+                
+                const tableName = isVipGuest ? 
+                    (window.currentLanguage === 'vi' ? 'Bàn VIP' : 'VIP Table') :
+                    (guest.tableObject && guest.tableObject.name ? guest.tableObject.name : `Table ${guest.table}`);
+                
+                const sideName = window.currentLanguage === 'en' ? 
+                    (guest.side.toLowerCase() === 'bride' ? "Bride's side" : "Groom's side") :
+                    (guest.side.toLowerCase() === 'bride' ? 'Bên Cô Dâu' : 'Bên Chú Rể');
+                
+                // Format tablemates list
+                let tablematesText = '';
+                if (displayTablemates.length > 0) {
+                    tablematesText = displayTablemates.join(', ');
+                    if (hasMore) {
+                        tablematesText += window.currentLanguage === 'en' ? ', and others...' : ', và những người khác...';
+                    }
+                } else {
+                    tablematesText = window.currentLanguage === 'en' ? 'No other guests at this table' : 'Không có khách khác ở bàn này';
+                }
+                
+                sectionHtml += `
+                    <button class="duplicate-option" 
+                            onclick="selectDuplicate(${globalIndex})"
+                            style="padding: 20px; 
+                                   background-color: #faf8f5; 
+                                   border: 2px solid #c896e0; 
+                                   border-radius: 15px; 
+                                   cursor: pointer;
+                                   transition: all 0.3s;
+                                   text-align: left;
+                                   width: 100%;">
+                        <div style="margin-bottom: 8px;">
+                            <strong style="font-size: 1.2rem; color: #333;">${guest.name}</strong>
+                            <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">${sideName}</span>
+                        </div>
+                        <div style="color: #666; font-size: 0.95rem; line-height: 1.5;">
+                            <strong>${window.currentLanguage === 'en' ? 'Seated with:' : 'Ngồi cùng:'}</strong> ${tablematesText}
+                        </div>
+                        <div style="color: #999; font-size: 0.85rem; margin-top: 5px;">
+                            ${tableName}
+                        </div>
+                    </button>
+                `;
+            });
             
-            html += `
-                <button class="duplicate-option" 
-                        onclick="selectDuplicate(${index})"
-                        style="padding: 20px; 
-                               background-color: #faf8f5; 
-                               border: 2px solid #c896e0; 
-                               border-radius: 15px; 
-                               cursor: pointer;
-                               transition: all 0.3s;
-                               text-align: left;
-                               width: 100%;">
-                    <div style="margin-bottom: 8px;">
-                        <strong style="font-size: 1.2rem; color: #333;">${guest.name}</strong>
-                        <span style="color: #888; font-size: 0.9rem; margin-left: 10px;">${sideName}</span>
-                    </div>
-                    <div style="color: #666; font-size: 0.95rem; line-height: 1.5;">
-                        <strong>${window.currentLanguage === 'en' ? 'Seated with:' : 'Ngồi cùng:'}</strong> ${tablematesText}
-                    </div>
-                    <div style="color: #999; font-size: 0.85rem; margin-top: 5px;">
-                        ${tableName}
-                    </div>
-                </button>
-            `;
-        });
+            return sectionHtml;
+        };
+        
+        // Add bride's guests first, then groom's
+        if (brideGuests.length > 0) {
+            html += addSideSection(brideGuests, 'Bride');
+        }
+        if (groomGuests.length > 0) {
+            html += addSideSection(groomGuests, 'Groom');
+        }
         
         html += `
                 </div>
